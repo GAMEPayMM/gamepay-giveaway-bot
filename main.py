@@ -74,6 +74,9 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(text)
 
+import asyncio
+
+asyncio.run(init_db())
 
 app = Application.builder().token(TOKEN).build()
 
