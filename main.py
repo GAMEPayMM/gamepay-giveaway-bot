@@ -21,7 +21,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if member.status in ["left", "kicked"]:
         await update.message.reply_text(
-            f"❌ Join {CHANNEL_USERNAME} first."
+            f"❌ Please join {CHANNEL_USERNAME} first."
         )
         return
 
@@ -39,7 +39,7 @@ async def entries(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = await count_entries()
 
     await update.message.reply_text(
-        f"Entries : {total}"
+        f"Entries: {total}"
     )
 
 
@@ -50,7 +50,7 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await reset_entries()
 
     await update.message.reply_text(
-        "Reset Complete."
+        "✅ Reset Complete."
     )
 
 
@@ -58,9 +58,21 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
+    if not context.args:
+        await update.message.reply_text(
+            "Usage: /draw <number>"
+        )
+        return
+
     winners = int(context.args[0])
 
     users = await all_entries()
+
+    if len(users) == 0:
+        await update.message.reply_text(
+            "No entries found."
+        )
+        return
 
     if winners > len(users):
         winners = len(users)
@@ -70,15 +82,22 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "🏆 Winners\n\n"
 
     for i, u in enumerate(selected):
-        text += f"{i+1}. @{u[1]}\n"
+        username = u[1] if u[1] else u[2]
+        text += f"{i+1}. {username}\n"
 
     await update.message.reply_text(text)
 
-import asyncio
 
-asyncio.run(init_db())
+async def post_init(application: Application):
+    await init_db()
 
-app = Application.builder().token(TOKEN).build()
+
+app = (
+    Application.builder()
+    .token(TOKEN)
+    .post_init(post_init)
+    .build()
+)
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("entries", entries))
