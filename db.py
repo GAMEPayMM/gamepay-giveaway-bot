@@ -1,6 +1,7 @@
 import aiosqlite
 from config import DB_NAME
 
+
 async def init_db():
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute("""
@@ -15,9 +16,21 @@ async def init_db():
 
 async def add_entry(user):
     async with aiosqlite.connect(DB_NAME) as db:
+
+        cursor = await db.execute(
+            "SELECT user_id FROM entries WHERE user_id=?",
+            (user.id,)
+        )
+
+        exists = await cursor.fetchone()
+
+        if exists:
+            return False
+
         await db.execute(
             """
-            INSERT OR IGNORE INTO entries
+            INSERT INTO entries
+            (user_id, username, first_name)
             VALUES (?, ?, ?)
             """,
             (
@@ -26,7 +39,10 @@ async def add_entry(user):
                 user.first_name
             )
         )
+
         await db.commit()
+
+        return True
 
 
 async def count_entries():
