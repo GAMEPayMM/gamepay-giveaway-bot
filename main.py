@@ -1,14 +1,23 @@
 import random
 
-from config import TOKEN, CHANNEL_USERNAME, ADMIN_ID
-from db import *
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+)
 
-from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
 )
+
+from config import TOKEN, CHANNEL_USERNAME, ADMIN_ID
+from db import *
+
+
+async def post_init(application: Application):
+    await init_db()
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -20,16 +29,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     if member.status in ["left", "kicked"]:
+
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "📢 Join Channel",
+                    url=f"https://t.me/{CHANNEL_USERNAME.replace('@','')}"
+                )
+            ]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await update.message.reply_text(
-            f"❌ Please join {CHANNEL_USERNAME} first."
+            "❌ You must join our channel first.",
+            reply_markup=reply_markup
         )
+
         return
 
-    await add_entry(user)
+    joined = await add_entry(user)
 
-    await update.message.reply_text(
-        "✅ Giveaway Entry Successful!"
-    )
+    if joined:
+        await update.message.reply_text(
+            "✅ Giveaway Entry Successful!"
+        )
+    else:
+        await update.message.reply_text(
+            "⚠️ You have already joined this giveaway."
+        )
 
 
 async def entries(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -39,7 +67,7 @@ async def entries(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = await count_entries()
 
     await update.message.reply_text(
-        f"Entries: {total}"
+        f"📊 Entries : {total}"
     )
 
 
@@ -58,9 +86,9 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
-    if not context.args:
+    if len(context.args) == 0:
         await update.message.reply_text(
-            "Usage: /draw <number>"
+            "Usage : /draw 3"
         )
         return
 
@@ -70,7 +98,7 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if len(users) == 0:
         await update.message.reply_text(
-            "No entries found."
+            "No Entries."
         )
         return
 
@@ -79,17 +107,24 @@ async def draw(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     selected = random.sample(users, winners)
 
-    text = "🏆 Winners\n\n"
+    text = "🏆 Giveaway Winners\n\n"
+
+    medals = ["🥇", "🥈", "🥉"]
 
     for i, u in enumerate(selected):
-        username = u[1] if u[1] else u[2]
-        text += f"{i+1}. {username}\n"
+
+        if u[1]:
+            name = f"@{u[1]}"
+        else:
+            name = u[2]
+
+        medal = medals[i] if i < 3 else "🎉"
+
+        text += f"{medal} {name}\n"
+
+    text += f"\n👥 Total Entries : {len(users)}"
 
     await update.message.reply_text(text)
-
-
-async def post_init(application: Application):
-    await init_db()
 
 
 app = (
