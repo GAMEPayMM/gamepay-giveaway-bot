@@ -26,7 +26,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await add_entry(user)
-    )
 
     await update.message.reply_text(
         "✅ Giveaway Entry Successful!"
