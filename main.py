@@ -25,9 +25,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    await add_entry(
-        user.id,
-        user.username
+    await add_entry(user)
     )
 
     await update.message.reply_text(
